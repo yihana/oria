@@ -1,0 +1,15 @@
+{
+  "name": "oria-clipboard-gpt",
+  "version": "1.0.0",
+  "description": "Clipboard watcher that logs GPT content to Notion",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.4",
+    "clipboardy": "^3.0.0",
+    "dotenv": "^16.0.3"
+  }
+}
