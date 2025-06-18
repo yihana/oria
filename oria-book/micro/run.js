@@ -4,6 +4,7 @@ const path = require('path');
 // 공통 모듈 import
 const { extractAllTexts } = require('../common/extract');
 const { saveTextsToFiles, saveAllTextsToOneFile } = require('../common/extract-to-txt');
+const { convertPdfToImages } = require('../common/pdf-to-image');
 const { extractAllTextsWithOCR } = require('../common/ocr-extract-by-chapter');
 const { summarizeAllChapters, saveSummariesToFiles } = require('../common/summarize');
 
@@ -117,6 +118,29 @@ async function main() {
     switch (command.toLowerCase()) {
       case 'pdf':
         allTexts = await runPDFExtraction();
+        break;
+
+      case 'convert':
+        console.log(`\n=== ${CONFIG.displayName} PDF → 이미지 변환 시작 ===`);
+        const chaptersForImages = loadChapters();
+
+        for (const chapter of chaptersForImages) {
+          const pdfFileName = `${chapter.name}.pdf`;  // e.g., 01_서론.pdf
+          const pdfPath = path.join(CONFIG.dataDir, pdfFileName);
+          const imageOutputDir = path.join(CONFIG.dataDir, 'images');
+
+          if (!fs.existsSync(imageOutputDir)) {
+            fs.mkdirSync(imageOutputDir, { recursive: true });
+          }
+
+          if (fs.existsSync(pdfPath)) {
+            await convertPdfToImages(pdfPath, imageOutputDir);
+          } else {
+            console.warn(`❗ PDF 파일 없음: ${pdfPath}`);
+          }
+        }
+
+        console.log(`\n✅ ${CONFIG.displayName} PDF → 이미지 변환 완료! ✅`);
         break;
         
       case 'ocr':
