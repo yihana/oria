@@ -1,49 +1,42 @@
-require("dotenv").config();
-const fs = require("fs");
-const path = require("path");
-const { Client } = require("@notionhq/client");
+const { Client } = require('@notionhq/client');
+require('dotenv').config();
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
+const databaseId = process.env.NOTION_DATABASE_ID;
 
-async function uploadTxtFilesToNotion(txtDir) {
-  const files = fs.readdirSync(txtDir).filter(f => f.endsWith(".txt"));
-  for (const file of files) {
-    const content = fs.readFileSync(path.join(txtDir, file), "utf-8");
-    const title = file.replace(".txt", "");
-
+async function uploadToNotion(title, content) {
+  try {
     await notion.pages.create({
-      parent: { database_id: process.env.NOTION_DB_ID },
+      parent: { database_id: databaseId },
       properties: {
         Name: {
           title: [
             {
               text: {
-                content: title
-              }
-            }
-          ]
-        }
+                content: title,
+              },
+            },
+          ],
+        },
       },
       children: [
         {
-          object: "block",
-          type: "paragraph",
+          object: 'block',
+          type: 'paragraph',
           paragraph: {
             rich_text: [
               {
-                type: "text",
-                text: {
-                  content: content.slice(0, 2000)  // 블록 제한
-                }
-              }
-            ]
-          }
-        }
-      ]
+                type: 'text',
+                text: { content: content },
+              },
+            ],
+          },
+        },
+      ],
     });
-
-    console.log(`✅ ${file} → Notion 업로드 완료`);
+  } catch (err) {
+    console.error(`❌ Notion 업로드 실패: ${title}`, err.message);
   }
 }
 
-module.exports = { uploadTxtFilesToNotion };
+module.exports = { uploadToNotion };
