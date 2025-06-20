@@ -1,65 +1,63 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
+const Tesseract = require("tesseract.js");
 
 /**
- * 텍스트를 파일로 저장하는 공통 함수
- * @param {Object} allTexts - 챕터별 텍스트 객체
- * @param {string} outputDir - 출력 디렉토리
- * @param {string} prefix - 파일명 접두사 (예: 'micro', 'macro')
+ * 이미지에서 한글 텍스트 추출 후 TXT로 저장
+ * @param {string} imageDir - 이미지가 저장된 디렉토리
+ * @param {string} outputDir - 텍스트 출력 디렉토리
+ * @param {string} prefix - 출력 파일명 접두사 (예: 'micro')
  */
-function saveTextsToFiles(allTexts, outputDir, prefix = '') {
-  // 출력 디렉토리가 없으면 생성
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-  
-  console.log('텍스트 파일 저장 시작...');
-  
-  Object.entries(allTexts).forEach(([chapterName, text]) => {
-    const filename = prefix ? `${prefix}_${chapterName}.txt` : `${chapterName}.txt`;
-    const filePath = path.join(outputDir, filename);
-    
-    try {
-      fs.writeFileSync(filePath, text, 'utf8');
-      console.log(`  ${filename} 저장 완료`);
-    } catch (error) {
-      console.error(`  ${filename} 저장 실패:`, error.message);
+async function extractTextFromAllImages(imageDir, outputDir, prefix = "micro") {
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  const files = fs.readdirSync(imageDir).filter(f => f.endsWith(".png"));
+  const grouped = groupByPrefix(files);
+
+  let allTexts = "";
+
+  for (const [title, images] of Object.entries(grouped)) {
+    const sortedImages = images.sort(); // 이미지 순서 보장
+    let combinedText = "";
+
+    for (const image of sortedImages) {
+      const imagePath = path.join(imageDir, image);
+      const { data: { text } } = await Tesseract.recognize(
+        imagePath,
+        "kor",
+        {
+          langPath: path.resolve(__dirname, "../tessdata"), // 직접 다운로드한 kor.traineddata 경로
+          logger: m => process.stdout.write(".") // 진행 표시
+        }
+      );
+      combinedText += text + "\n";
     }
-  });
-  
-  console.log('텍스트 파일 저장 완료!');
+
+    const outputFilename = `${prefix}_ocr_${title}.txt`;
+    const outputPath = path.join(outputDir, outputFilename);
+    fs.writeFileSync(outputPath, combinedText, "utf-8");
+    console.log(`\n✅ ${outputFilename} 저장 완료`);
+    allTexts += combinedText + "\n";
+  }
+
+  const allOutputPath = path.join(outputDir, `${prefix}_ocr_all_texts.txt`);
+  fs.writeFileSync(allOutputPath, allTexts, "utf-8");
+  console.log(`\n✅ 전체 텍스트 저장 완료: ${allOutputPath}`);
 }
 
 /**
- * 전체 텍스트를 하나의 파일로 저장
- * @param {Object} allTexts - 챕터별 텍스트 객체
- * @param {string} outputDir - 출력 디렉토리
- * @param {string} filename - 파일명
+ * 이미지 파일을 챕터별로 묶기 (예: '01장_경제학의_개요-001.png' → '01장_경제학의_개요')
  */
-function saveAllTextsToOneFile(allTexts, outputDir, filename) {
-  // 출력 디렉토리가 없으면 생성
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+function groupByPrefix(files) {
+  const groups = {};
+  for (const file of files) {
+    const match = file.match(/^(.+)-\d{3}\.png$/);
+    if (!match) continue;
+    const prefix = match[1];
+    if (!groups[prefix]) groups[prefix] = [];
+    groups[prefix].push(file);
   }
-  
-  const filePath = path.join(outputDir, filename);
-  
-  try {
-    let combinedText = '';
-    
-    Object.entries(allTexts).forEach(([chapterName, text]) => {
-      combinedText += `\n\n=== ${chapterName} ===\n\n`;
-      combinedText += text;
-    });
-    
-    fs.writeFileSync(filePath, combinedText, 'utf8');
-    console.log(`전체 텍스트 파일 저장 완료: ${filename}`);
-  } catch (error) {
-    console.error(`전체 텍스트 파일 저장 실패:`, error.message);
-  }
+  return groups;
 }
 
-module.exports = {
-  saveTextsToFiles,
-  saveAllTextsToOneFile
-};
+module.exports = { extractTextFromAllImages };

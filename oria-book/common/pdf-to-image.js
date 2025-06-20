@@ -1,41 +1,31 @@
-const { fromPath } = require("pdf2pic");
 const path = require("path");
 const fs = require("fs");
+const { execSync } = require("child_process");
 
 /**
- * PDF를 페이지별 이미지로 변환
- * @param {string} pdfPath - PDF 경로
- * @param {string} outputDir - 이미지 저장 디렉토리
+ * PDF를 페이지별 이미지로 변환 (ImageMagick CLI 사용)
+ * @param {string} pdfPath - PDF 파일 경로
+ * @param {string} outputDir - 출력 디렉토리
  */
 async function convertPdfToImages(pdfPath, outputDir) {
-  const options = {
-    density: 150,
-    saveFilename: path.basename(pdfPath, path.extname(pdfPath)),
-    savePath: outputDir,
-    format: "png",
-    width: 1240,
-    height: 1754
-  };
-
-  const convert = fromPath(pdfPath, options);
-  const totalPages = await getPdfPageCount(pdfPath);
-
-  for (let page = 1; page <= totalPages; page++) {
-    console.log(`페이지 ${page} 이미지 변환 중...`);
-    await convert(page);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  console.log(`✅ PDF → 이미지 변환 완료: ${pdfPath}`);
-}
+  const baseName = path.basename(pdfPath, path.extname(pdfPath));
+  const outputPattern = path.join(outputDir, `${baseName}-%03d.png`);
 
-/**
- * PDF 페이지 수 구하기 (pdf-parse 사용)
- */
-async function getPdfPageCount(pdfPath) {
-  const pdfParse = require("pdf-parse");
-  const dataBuffer = fs.readFileSync(pdfPath);
-  const data = await pdfParse(dataBuffer);
-  return data.numpages;
+  try {
+    console.log(`ImageMagick로 변환 중: ${pdfPath}`);
+    
+    const command = `magick -density 150 "${pdfPath}" "${outputPattern}"`;
+    execSync(command, { stdio: "inherit" });
+
+    console.log(`✅ PDF → 이미지 변환 완료: ${outputDir}`);
+  } catch (error) {
+    console.error(`❌ 변환 실패: ${error.message}`);
+    throw error;
+  }
 }
 
 module.exports = { convertPdfToImages };
