@@ -1,3 +1,5 @@
-"micro/data/*.pdf" 
-"macro/data/*.pdf" 
+micro/data/
+micro/output/
+macro/data/
+macro/output/ 
 node_modules/
