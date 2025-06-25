@@ -9,7 +9,7 @@ function convertPdfToImages(pdfPath, outputDir) {
     //const command = `magick -density 300 "${pdfPath}" -quality 100 "${outputPath}"`;
     const quotedPdfPath = `"${pdfPath.replace(/\\/g, "/")}"`;
     const quotedImagePath = `"${path.join(outputDir, `${baseName}-%d.png`).replace(/\\/g, "/")}"`;
-    const command = `magick -density 300 ${quotedPdfPath} -quality 100 ${quotedImagePath}`;
+    const command = `magick -density 150 ${quotedPdfPath} -quality 70 ${quotedImagePath}`;
     
     exec(command, (error, stdout, stderr) => {
       if (error) {

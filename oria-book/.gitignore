@@ -1,5 +1,7 @@
-micro/data/
-micro/output/
-macro/data/
+.env
+*.log
+micro/data/old
+macro/data/old
 macro/output/ 
 node_modules/
+
